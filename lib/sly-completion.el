@@ -204,10 +204,10 @@ COMPLETIONS is a list of propertized strings."
                                                completion))
            (add-text-properties 0
                                 (length completion)
-                                `(sly--annotation
-                                  ,(format "%s %5.2f%%"
-                                           classification
-                                           (* score 100))
+                                `(sly--classification
+                                  ,classification
+                                  sly--score
+                                  ,score
                                   sly--suggestion
                                   ,suggestion)
                                 completion)
@@ -216,8 +216,10 @@ COMPLETIONS is a list of propertized strings."
            finally return (list formatted nil)))
 
 (defun sly-completion-annotation (completion)
-  "Grab the annotation of COMPLETION, a string, if any"
-  (get-text-property 0 'sly--annotation completion))
+  "Grab the annotation of COMPLETION, a string, if any."
+  (format "%s %5.2f%%"
+          (get-text-property 0 'sly--classification completion)
+          (* (get-text-property 0 'sly--score completion) 100)))
 
 ;;; backward-compatibility
 (defun sly-fuzzy-completions (pattern)
@@ -291,6 +293,20 @@ ANNOTATION) describing each completion possibility."
                              (when suggestion
                                (delete-region (- (point) (length obj)) (point))
                                (insert suggestion))))
+          :company-kind
+          (lambda (obj)
+            (pcase (get-text-property 0 'sly--classification obj)
+              ("fn" 'function)
+              ("generic-fn" 'function)
+              ("generic-fn,cla" 'method)
+              ("cla,type" 'class)
+              ("cla" 'class)
+              ("special-op" 'operator)
+              ("type" 'struct)
+              ("constant" 'constant)
+              ("var" 'variable)
+              ("pak" 'module)
+              ("macro" 'macro)))
           :company-docsig
           (lambda (obj)
             (when (sit-for 0.1)
